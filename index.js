@@ -45,7 +45,7 @@ app.post("/login", async (req, res, next) => {
     const val = data._doc;
     // res.send({...val, result:"logged In"});
     res
-      .cookie("access_token", token, {expires: farFuture,  httpOnly: true })
+      .cookie("access_token", token, {expires: farFuture })
       .status(200)
       .json({ ...val, result: "logged in" });
   } else {
