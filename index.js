@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import User from "./DB/User.js";
 import Video from "./DB/Video.js";
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 // import "./DB/config.js";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
@@ -12,20 +12,26 @@ const app = express();
 
 const corsConfig = {
   origin: true, //included origin as true
-    credentials: true, //included credentials as true
-}
+  credentials: true, //included credentials as true
+};
 
 app.use(express.json());
 app.use(cors(corsConfig));
 app.use(cookieParser());
 dotenv.config();
 
-var farFuture = new Date(new Date().getTime() + (1000*60*60*24*365*10));
+var farFuture = new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 365 * 10);
 
-mongoose.connect(process.env.MONGO, {useNewUrlParser: true}).then(() => {
-  console.log('db');
-});
-
+const dbConnect = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGO, {
+      useNewUrlParser: true,
+    });
+    console.log("connected to db");
+  } catch (error) {
+    console.log(err);
+  }
+};
 
 //auth
 app.post("/register", async (req, res, next) => {
@@ -33,9 +39,8 @@ app.post("/register", async (req, res, next) => {
     let user = new User(req.body);
     await user.save();
     res.send(user);
-  }
-  catch(err) {
-    res.json({error:"user already exists"});
+  } catch (err) {
+    res.json({ error: "user already exists" });
   }
 });
 app.post("/login", async (req, res, next) => {
@@ -47,11 +52,11 @@ app.post("/login", async (req, res, next) => {
     res
       .cookie("access_token", token, {
         expires: farFuture,
-        path:"/",
-        domain:"",
-        httpOnly:true,
-        secure:true,
-        sameSite:"None"
+        path: "/",
+        domain: "",
+        httpOnly: true,
+        secure: true,
+        sameSite: "None",
       })
       .status(200)
       .json({ ...val, result: "logged in" });
@@ -70,7 +75,7 @@ app.get("/user/getUser/:id", async (req, res, next) => {
   }
 });
 
-app.put('/user/update/:id', verifyToken, async (req, res, next) => {
+app.put("/user/update/:id", verifyToken, async (req, res, next) => {
   if (req.params.id === req.user.id) {
     try {
       const updatedUser = await User.findByIdAndUpdate(
@@ -87,9 +92,9 @@ app.put('/user/update/:id', verifyToken, async (req, res, next) => {
   } else {
     return next(createError(403, "You can update only your account!"));
   }
-})
+});
 
-app.delete('/user/delete/:id', verifyToken, async (req, res, next) => {
+app.delete("/user/delete/:id", verifyToken, async (req, res, next) => {
   if (req.params.id === req.user.id) {
     try {
       await User.findByIdAndDelete(req.params.id);
@@ -100,7 +105,7 @@ app.delete('/user/delete/:id', verifyToken, async (req, res, next) => {
   } else {
     return next(createError(403, "You can delete only your account!"));
   }
-})
+});
 
 app.put("/user/like/:videoId", verifyToken, async (req, res, next) => {
   const id = req.user.id;
@@ -140,14 +145,14 @@ app.post("/video/add", verifyToken, async (req, res, next) => {
   }
 });
 
-app.get('/video/get/:id', async (req, res, next) => {
+app.get("/video/get/:id", async (req, res, next) => {
   try {
     const video = await Video.findById(req.params.id);
     res.status(200).json(video);
   } catch (err) {
     next(err);
   }
-})
+});
 
 app.get("/video/get", async (req, res, next) => {
   try {
@@ -158,7 +163,7 @@ app.get("/video/get", async (req, res, next) => {
   }
 });
 
-app.put('/video/update/:id', verifyToken, async (req, res, next) => {
+app.put("/video/update/:id", verifyToken, async (req, res, next) => {
   try {
     const video = await Video.findById(req.params.id);
     if (!video) return next(createError(404, "Video not found!"));
@@ -177,9 +182,9 @@ app.put('/video/update/:id', verifyToken, async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-})
+});
 
-app.delete('/video/delete/:id', verifyToken, async (req, res, next) => {
+app.delete("/video/delete/:id", verifyToken, async (req, res, next) => {
   try {
     const video = await Video.findById(req.params.id);
     if (!video) return next(createError(404, "Video not found!"));
@@ -192,7 +197,7 @@ app.delete('/video/delete/:id', verifyToken, async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-})
+});
 
 app.put("/video/view/:id", async (req, res, next) => {
   try {
@@ -204,15 +209,18 @@ app.put("/video/view/:id", async (req, res, next) => {
     next(err);
   }
 });
-app.get('/video/getAll/:id', async (req, res, next) => {
+app.get("/video/getAll/:id", async (req, res, next) => {
   try {
-    const videos = await Video.find({userId: req.params.id});
+    const videos = await Video.find({ userId: req.params.id });
     res.status(200).json(videos);
   } catch (err) {
     next(err);
   }
-})
-const PORT = process.env.PORT || 9000
-app.listen(PORT, () => {
-  console.log("connected");
+});
+const PORT = process.env.PORT || 9000;
+
+dbConnect().then(() => {
+  app.listen(PORT, () => {
+    console.log("connected");
+  });
 });
